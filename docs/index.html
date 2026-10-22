@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Oyun Odası 3B Modeli</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: render comparison as the hero, then the live 3D model, alternate angles, iteration filmstrip and the plan/spec sheet. Single dark look (night scene). */
+:root {
+  --bg: #0b0d13;
+  --panel: #141823;
+  --line: #262c3b;
+  --fg: #ebe7e0;
+  --muted: #949aaa;
+  --led: #4f7bff;
+  --amber: #e8a25c;
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", Roboto, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 56px; display: grid; gap: 44px; }
+header { display: grid; gap: 10px; }
+.eyebrow { font: 500 12px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--amber); display: flex; gap: 14px; flex-wrap: wrap; }
+.eyebrow span + span::before { content: "·"; margin-right: 14px; color: var(--muted); }
+h1 { font: 700 clamp(30px, 5vw, 52px)/1.02 var(--f-display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+.lede { margin: 0; max-width: 66ch; color: var(--muted); }
+h2 { font: 700 22px/1.2 var(--f-display); margin: 0; text-wrap: balance; }
+.sechead { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.cap { font: 12px/1.45 var(--f-mono); color: var(--muted); }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button { font: 500 13px/1 var(--f-body); color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 9px 14px; cursor: pointer; }
+.tabs button[aria-pressed="true"] { color: var(--fg); border-color: var(--led); background: color-mix(in srgb, var(--led) 18%, transparent); }
+button:focus-visible, input[type=range]:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+/* comparison */
+.viewer { display: grid; gap: 12px; }
+.stage { position: relative; width: 100%; max-width: 100%; aspect-ratio: 1447 / 1087; overflow: hidden; border-radius: 6px; background: #000; user-select: none; }
+.stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.stage .top { clip-path: inset(0 0 0 var(--cut, 50%)); }
+.stage .divider { position: absolute; top: 0; bottom: 0; left: var(--cut, 50%); width: 2px; background: var(--fg); box-shadow: 0 0 12px var(--led); pointer-events: none; }
+.stage .knob { position: absolute; top: 50%; left: var(--cut, 50%); transform: translate(-50%, -50%); width: 38px; height: 38px; border-radius: 50%; background: var(--bg); border: 2px solid var(--fg); display: grid; place-items: center; font: 600 13px var(--f-mono); color: var(--fg); pointer-events: none; }
+.stage input[type=range] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: ew-resize; margin: 0; }
+.tag { position: absolute; top: 12px; font: 500 11px/1 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; padding: 6px 8px; border-radius: 4px; background: rgba(8,10,16,.72); color: var(--fg); pointer-events: none; }
+.tag.l { left: 12px; } .tag.r { right: 12px; }
+.side { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.side figure { margin: 0; display: grid; gap: 6px; }
+.side img { width: 100%; border-radius: 6px; display: block; }
+.fade { display: grid; gap: 8px; }
+.fade input { width: 100%; accent-color: var(--led); }
+.fade .stage .top { clip-path: none; opacity: var(--op, .5); }
+
+/* 3D */
+.model { display: grid; gap: 12px; }
+.v3d { position: relative; width: 100%; aspect-ratio: 16 / 10; max-height: 78vh; border-radius: 6px; overflow: hidden; background: radial-gradient(ellipse at 50% 40%, #1a2030, var(--bg) 70%); border: 1px solid var(--line); touch-action: none; }
+.v3d canvas { width: 100%; height: 100%; display: block; }
+.v3d .load { position: absolute; inset: 0; display: grid; place-items: center; font: 13px var(--f-mono); color: var(--muted); pointer-events: none; text-align: center; padding-inline: 16px; }
+.toggle { font: 500 13px/1 var(--f-body); color: var(--fg); display: inline-flex; gap: 8px; align-items: center; padding: 8px 2px; }
+.toggle input { accent-color: var(--led); width: 16px; height: 16px; }
+
+/* gallery */
+.gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.gallery figure { margin: 0; display: grid; gap: 8px; }
+.gallery img { width: 100%; border-radius: 6px; display: block; aspect-ratio: 1447 / 1087; object-fit: cover; background: var(--panel); }
+
+/* status */
+.status { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.status h2 { margin-bottom: 14px; }
+.status ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.status li { padding-left: 18px; position: relative; }
+.status li::before { content: ""; position: absolute; left: 0; top: .62em; width: 8px; height: 8px; border-radius: 50%; }
+.ok li::before { background: var(--led); box-shadow: 0 0 8px var(--led); }
+.todo li::before { background: var(--amber); }
+
+/* filmstrip */
+.strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.strip figure { margin: 0; display: grid; gap: 8px; align-content: start; }
+.strip img { width: 100%; aspect-ratio: 560 / 421; object-fit: cover; border-radius: 4px; display: block; border: 1px solid var(--line); }
+.strip .n { font: 500 12px/1 var(--f-mono); color: var(--amber); }
+.strip p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.strip b { color: var(--fg); font-weight: 600; }
+
+/* spec */
+.spec { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 28px; align-items: start; }
+.spec img { width: 100%; border-radius: 4px; display: block; background: #fff; }
+.spec h2 { margin-bottom: 14px; }
+dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 9px 22px; }
+dt { font: 12px/1.5 var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+dd { margin: 0; font-variant-numeric: tabular-nums; min-width: 0; }
+.files a { color: inherit; text-decoration: none; }
+.files a:hover code { border-color: var(--led); }
+code { font: 13px var(--f-mono); border: 1px solid transparent; color: var(--fg); background: var(--panel); padding: 2px 6px; border-radius: 4px; word-break: break-all; }
+.files { display: grid; gap: 8px; margin-top: 18px; }
+
+@media (max-width: 860px) { .strip { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px) {
+  .status, .spec, .side, .gallery { grid-template-columns: 1fr; }
+  .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  dl { grid-template-columns: 1fr; gap: 2px 0; }
+  dd { margin-bottom: 8px; }
+}
+@media (prefers-reduced-motion: no-preference) { .tabs button { transition: background .15s, border-color .15s; } }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><span>Final</span><span>İterasyon 18</span><span>Cycles · 384 örnek</span></div>
+    <h1>Oyun Odası 3B Modeli</h1>
+    <p class="lede">Zemin kat planının sol alt odası, yapay zekâ ile üretilmiş referans görsele bakılarak Blender'da Python ile prosedürel olarak modellendi. Referansla karşılaştırabilir, modeli tarayıcıda döndürebilir ve farklı açılardan render'lara bakabilirsin.</p>
+  </header>
+
+  <section class="viewer" aria-label="Referans ve render karşılaştırması">
+    <div class="sechead">
+      <h2>Referans ve render</h2>
+      <div class="tabs" role="group" aria-label="Karşılaştırma görünümü">
+        <button type="button" id="m-wipe" aria-pressed="true">Kaydırarak</button>
+        <button type="button" id="m-side" aria-pressed="false">Yan yana</button>
+        <button type="button" id="m-fade" aria-pressed="false">Bindirme</button>
+      </div>
+    </div>
+    <div id="v-wipe">
+      <div class="stage" id="wipe" style="--cut:50%">
+        <img src="img/ref.jpg" alt="Referans: yapay zekâ ile üretilmiş oyun odası görseli">
+        <img class="top" src="img/render.jpg" alt="3B modelin Cycles render'ı">
+        <div class="divider"></div>
+        <div class="knob" aria-hidden="true">⇆</div>
+        <span class="tag l">Referans</span><span class="tag r">3B render</span>
+        <input type="range" id="cut" min="0" max="100" value="50" aria-label="Karşılaştırma çizgisinin konumu">
+      </div>
+    </div>
+    <div id="v-side" class="side" hidden>
+      <figure><img src="img/ref.jpg" alt="Referans görsel"><figcaption class="cap">Referans (yapay zekâ görseli)</figcaption></figure>
+      <figure><img src="img/render.jpg" alt="3B render"><figcaption class="cap">3B model · Cycles render</figcaption></figure>
+    </div>
+    <div id="v-fade" class="fade" hidden>
+      <div class="stage" id="fade" style="--op:.5">
+        <img src="img/ref.jpg" alt="Referans görsel">
+        <img class="top" src="img/render.jpg" alt="3B render, referansın üzerine bindirilmiş">
+        <span class="tag l">Referans</span><span class="tag r">3B render</span>
+      </div>
+      <input type="range" id="op" min="0" max="100" value="50" aria-label="Render opaklığı">
+      <span class="cap">Kaydırıcı render'ın opaklığını değiştirir; perspektif kaymalarını görmek için kullanışlı.</span>
+    </div>
+  </section>
+
+  <section class="model" aria-label="Etkileşimli 3B model">
+    <div class="sechead">
+      <h2>Modeli döndür</h2>
+      <div class="tabs" role="group" aria-label="Kamera">
+        <button type="button" data-view="ref" aria-pressed="true">Referans açısı</button>
+        <button type="button" data-view="cut" aria-pressed="false">Kesit</button>
+        <button type="button" data-view="desk" aria-pressed="false">Masa</button>
+        <button type="button" data-view="sofa" aria-pressed="false">Kanepe</button>
+      </div>
+    </div>
+    <div class="v3d" id="v3d"><canvas id="c3d" aria-label="3B oda modeli"></canvas><div class="load" id="load">Model yükleniyor…</div></div>
+    <div style="display:flex; gap:18px; flex-wrap:wrap; align-items:center; justify-content:space-between">
+      <label class="toggle"><input type="checkbox" id="ceil"> Tavanı ve ön duvarları gizle</label>
+      <span class="cap">Sürükle: döndür · tekerlek ya da iki parmak: yakınlaş · sağ tık: kaydır</span>
+    </div>
+    <span class="cap">Web sürümü sadeleştirilmiş malzemelerle gelir; halı tüyleri ve bahçe ağaçları bu sürümde yok. Tam detay Blender dosyasında.</span>
+  </section>
+
+  <section>
+    <div class="sechead"><h2>Diğer açılar</h2><span class="cap">Aynı model, aynı ışık · Cycles 256 örnek</span></div>
+    <div class="gallery">
+      <figure><img src="img/v_back.jpg" alt="Arka duvara bakış: raflar, pencere, VR alanı"><figcaption class="cap">Arka duvar · raflar, pencere, VR alanı</figcaption></figure>
+      <figure><img src="img/v_desk.jpg" alt="Masa köşesi ve kapı"><figcaption class="cap">Masa köşesi · kapı, çıtalı duvar, pegboard</figcaption></figure>
+      <figure><img src="img/v_sofa.jpg" alt="Kanepe ve sürgülü cam"><figcaption class="cap">Oturma alanı · sürgülü cam ve teras</figcaption></figure>
+      <figure><img src="img/v_top.jpg" alt="Tavansız aksonometrik kesit"><figcaption class="cap">Aksonometrik kesit · 5,24 × 3,63 m</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="status">
+    <div class="ok">
+      <h2>Referansa oturanlar</h2>
+      <ul>
+        <li>Plan ölçüleri: oda 5,24 × 3,63 m; pencere, sürgülü cam ve kapı plandaki yerinde</li>
+        <li>Kamera, referanstaki 16 noktaya en küçük kareler ile eşlendi</li>
+        <li>Jaluzili pencere ve arkasında aydınlık ağaç sırası, cam ardında teras</li>
+        <li>Geometry Nodes ile yaklaşık 150 bin telli tüylü halılar</li>
+        <li>Yarış koltuğu, üç monitör, fanlı PC, pegboard, ışıklı raflar, figürler, VR köşesi</li>
+        <li>Sıcak spot ve LED ışığı baskın, mavi yalnızca aksan</li>
+      </ul>
+    </div>
+    <div class="todo">
+      <h2>Bilinçli sapmalar</h2>
+      <ul>
+        <li>AI görseldeki oda plandan ~%20 geniş; plan esas alındı, kadraj buna göre biraz daha sıkışık</li>
+        <li>Pencere planda 126 cm, görsele yaklaşmak için 151 cm yapıldı</li>
+        <li>Teras planda 91 cm derinlikte; dış kanepe buna sığacak boyutta</li>
+        <li>Ön plandaki alçak dolap referanstaki kompozisyonu korumak için odanın ortasında</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead"><h2>İterasyonlar</h2></div>
+    <div class="strip">
+      <figure><img src="img/it01.jpg" alt="İterasyon 1"><span class="n">01</span><p><b>Kaba kütle.</b> Kutu bloklar ve ilk kamera tahmini.</p></figure>
+      <figure><img src="img/it02.jpg" alt="İterasyon 2"><span class="n">02</span><p><b>İlk Cycles render.</b> Malzemeler, gömme dolaplar, LED'ler. Fazla mavi.</p></figure>
+      <figure><img src="img/it04.jpg" alt="İterasyon 4"><span class="n">04</span><p><b>Kamera çözümü.</b> Pencere, kapı ve cam noktalarıyla en küçük kareler.</p></figure>
+      <figure><img src="img/it05.jpg" alt="İterasyon 5"><span class="n">05</span><p><b>Aksesuarlar.</b> Monitör, PC, figürler, raf içerikleri.</p></figure>
+      <figure><img src="img/it08.jpg" alt="İterasyon 8"><span class="n">08</span><p><b>Işık kalibrasyonu.</b> Bölge bazlı renk ölçümüyle ayar.</p></figure>
+      <figure><img src="img/it11.jpg" alt="İterasyon 11"><span class="n">11</span><p><b>Tüylü halılar.</b> Geometry Nodes tel instance'ları.</p></figure>
+      <figure><img src="img/it13.jpg" alt="İterasyon 13"><span class="n">13</span><p><b>Yeni koltuk.</b> Kanatlı kabuk, LED parlama efekti.</p></figure>
+      <figure><img src="img/it16.jpg" alt="İterasyon 16"><span class="n">16</span><p><b>Ağaç sırası.</b> AgX renk ayarı, 15,4 mm objektif.</p></figure>
+      <figure><img src="img/it17.jpg" alt="İterasyon 17"><span class="n">17</span><p><b>Detay.</b> İri figürler, gür bitki, pegboard ışığı.</p></figure>
+      <figure><img src="img/it18.jpg" alt="İterasyon 18"><span class="n">18</span><p><b>Final.</b> Masa düzeni, bulutlu gökyüzü, koyu zemin.</p></figure>
+    </div>
+  </section>
+
+  <section class="spec">
+    <figure style="margin:0; display:grid; gap:8px">
+      <img src="img/plan.jpg" alt="Zemin kat planından sol alt oda">
+      <figcaption class="cap">Plandaki oda: güneyde teras, batıda 130'luk pencere</figcaption>
+    </figure>
+    <div>
+      <h2>Model ve render bilgisi</h2>
+      <dl>
+        <dt>Oda</dt><dd>5,24 × 3,63 m, tavan 2,65 m</dd>
+        <dt>Açıklıklar</dt><dd>Sürgülü cam 2,48 m · pencere 1,51 m · kapı 0,78 m</dd>
+        <dt>Kamera</dt><dd>x 4,73 · y 1,74 · z 1,22 m, 8,7° sapma, 15,4 mm</dd>
+        <dt>Sahne</dt><dd>~1.600 obje, tamamı Python ile prosedürel; malzemeler node tabanlı</dd>
+        <dt>Render</dt><dd>Blender 5.2 Cycles, RTX 2050 OptiX, 1447 × 1087</dd>
+        <dt>Renk</dt><dd>AgX Medium High Contrast, +1,1 pozlama, hafif bloom</dd>
+      </dl>
+      <div class="files">
+        <span class="cap">Dosyalar</span>
+        <a href="https://github.com/creeperkafasi/oyun-odasi-3d/raw/main/out/oyun_odasi.blend"><code>oyun_odasi.blend</code></a>
+        <a href="https://github.com/creeperkafasi/oyun-odasi-3d/raw/main/out/oyun_odasi.glb"><code>oyun_odasi.glb</code></a>
+        <a href="https://github.com/creeperkafasi/oyun-odasi-3d/tree/main/out/final"><code>out/final/ · final render'lar</code></a>
+        <a href="https://github.com/creeperkafasi/oyun-odasi-3d/tree/main/scene"><code>scene/ · Python kaynak kodu</code></a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script>
+(function () {
+  // comparison modes
+  var modes = { wipe: "v-wipe", side: "v-side", fade: "v-fade" };
+  Object.keys(modes).forEach(function (k) {
+    document.getElementById("m-" + k).addEventListener("click", function () {
+      Object.keys(modes).forEach(function (j) {
+        document.getElementById(modes[j]).hidden = j !== k;
+        document.getElementById("m-" + j).setAttribute("aria-pressed", String(j === k));
+      });
+    });
+  });
+  var wipe = document.getElementById("wipe");
+  document.getElementById("cut").addEventListener("input", function (e) { wipe.style.setProperty("--cut", e.target.value + "%"); });
+  var fade = document.getElementById("fade");
+  document.getElementById("op").addEventListener("input", function (e) { fade.style.setProperty("--op", e.target.value / 100); });
+})();
+
+(function () {
+  var load = document.getElementById("load");
+  if (!window.THREE || !THREE.GLTFLoader || !THREE.OrbitControls) { load.textContent = "3B görüntüleyici yüklenemedi."; return; }
+  var box = document.getElementById("v3d"), canvas = document.getElementById("c3d");
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+  renderer.physicallyCorrectLights = true;
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0b0d13);
+  var pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
+  var camera = new THREE.PerspectiveCamera(62, 1.6, 0.05, 200);
+  var controls = new THREE.OrbitControls(camera, canvas);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+
+  // Blender (x, y, z) -> glTF/three (x, z, -y)
+  function B(x, y, z) { return new THREE.Vector3(x, z, -y); }
+  scene.add(new THREE.HemisphereLight(0xffd8b0, 0x1a1c28, 0.55));
+  [[1.2, 1.2], [3.2, 1.6], [2.2, 2.9], [0.5, 2.0]].forEach(function (p) {
+    var l = new THREE.PointLight(0xffb36b, 7, 0, 2); l.position.copy(B(p[0], p[1], 2.4)); scene.add(l);
+  });
+  var blue = new THREE.PointLight(0x3a6bff, 3, 0, 2); blue.position.copy(B(1.25, 1.9, 2.35)); scene.add(blue);
+  var mon = new THREE.PointLight(0x5a80ff, 1.5, 0, 2); mon.position.copy(B(2.7, 3.1, 1.15)); scene.add(mon);
+
+  var VIEWS = {
+    ref:  { pos: B(4.73, 1.74, 1.22), tgt: B(1.75, 1.28, 1.05), fov: 70, cut: false },
+    cut:  { pos: B(9.2, -5.2, 8.0), tgt: B(2.55, 1.75, 0.4), fov: 32, cut: true },
+    desk: { pos: B(0.95, 1.15, 1.45), tgt: B(3.0, 3.3, 0.95), fov: 62, cut: false },
+    sofa: { pos: B(3.4, 3.25, 1.55), tgt: B(1.2, 0.3, 0.6), fov: 66, cut: false }
+  };
+  var hideable = [];
+  var HIDE = /^(Ceiling|Track|Ring_|Ter_soffit|WallS_|WallE|Cove|Curtain_track|Skirt_E|Skirt_S)/;
+  var ceilBox = document.getElementById("ceil");
+  function setCut(on) { hideable.forEach(function (o) { o.visible = !on; }); ceilBox.checked = on; }
+  ceilBox.addEventListener("change", function () { setCut(ceilBox.checked); });
+
+  function go(name) {
+    var v = VIEWS[name];
+    camera.position.copy(v.pos); controls.target.copy(v.tgt); camera.fov = v.fov; camera.updateProjectionMatrix();
+    controls.update(); setCut(v.cut);
+    document.querySelectorAll("[data-view]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.view === name)); });
+  }
+  document.querySelectorAll("[data-view]").forEach(function (b) { b.addEventListener("click", function () { go(b.dataset.view); }); });
+
+  function resize() {
+    var w = box.clientWidth, h = box.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(box); else window.addEventListener("resize", resize);
+  resize();
+
+  function onModel(g) {
+    g.scene.traverse(function (o) {
+      if (HIDE.test(o.name)) hideable.push(o);
+      if (o.isMesh && o.material) {
+        var ms = Array.isArray(o.material) ? o.material : [o.material];
+        ms.forEach(function (m) { m.envMapIntensity = 0.35; });
+      }
+    });
+    scene.add(g.scene);
+    load.hidden = true;
+    go("ref");
+  }
+  function fail() { load.textContent = "Model dosyası açılamadı."; }
+  new THREE.GLTFLoader().load("model/oyun_odasi.glb", onModel, function (e) {
+    if (e.total) load.textContent = "Model yükleniyor… " + Math.round(e.loaded / e.total * 100) + "%";
+  }, fail);
+
+  go("ref");
+  (function loop() { requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
+})();
+</script>
+</body>
+</html>

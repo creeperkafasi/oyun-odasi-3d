@@ -1,0 +1,10 @@
+# whitelist: only the source, final outputs and the Pages site are tracked
+/out/*
+!/out/oyun_odasi.blend
+!/out/oyun_odasi.glb
+!/out/final/
+/out/final/raw_*
+/ref/*
+!/ref/render.jpg
+__pycache__/
+*.blend1
