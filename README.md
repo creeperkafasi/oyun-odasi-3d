@@ -1,6 +1,6 @@
 # Oyun Odası 3B Modeli
 
-**Site:** https://creeperkafasi.github.io/oyun-odasi-3d/ (referansla karşılaştırma, tarayıcıda döndürülebilir model, render galerisi)
+**Site:** https://deniz.is-a.dev/oyun-odasi-3d/ (referansla karşılaştırma, tarayıcıda döndürülebilir model, render galerisi)
 
 Bir zemin kat planının sol alt odası (plan dosyası gizlilik nedeniyle repoda yok), yapay zekâ ile üretilmiş referans görsel (`ref/render.jpg`) esas alınarak Blender 5.2'de tamamen Python ile prosedürel olarak modellendi.
 
