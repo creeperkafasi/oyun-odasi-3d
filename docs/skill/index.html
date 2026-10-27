@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>plan-to-blender-room</title>
+<meta name="description" content="Kat planı ve referans görselden prosedürel Blender oda modeli kuran Claude skill'i.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Single-column install page: thesis + before/after, the one copyable prompt for Claude, then install paths and contents. Same night palette as the project site. */
+:root {
+  --bg: #0b0d13; --panel: #141823; --line: #262c3b; --fg: #ebe7e0; --muted: #949aaa;
+  --led: #4f7bff; --amber: #e8a25c;
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", Roboto, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 var(--f-body); }
+img { max-width: 100%; display: block; }
+a { color: var(--led); }
+.wrap { max-width: 860px; margin: 0 auto; padding-inline: 20px; padding-block: 36px 64px; display: grid; gap: 40px; }
+.eyebrow { font: 500 12px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--amber); }
+h1 { font: 700 clamp(32px, 6vw, 54px)/1.02 var(--f-display); margin: 10px 0 12px; letter-spacing: -.01em; overflow-wrap: anywhere; }
+h2 { font: 700 21px/1.25 var(--f-display); margin: 0 0 12px; }
+p { margin: 0; max-width: 66ch; }
+.muted { color: var(--muted); }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pair figure { margin: 0; display: grid; gap: 6px; }
+.pair img { border-radius: 6px; aspect-ratio: 1447/1087; object-fit: cover; }
+.cap { font: 12px/1.4 var(--f-mono); color: var(--muted); }
+.copybox { position: relative; background: var(--panel); border: 1px solid var(--led); border-radius: 8px; padding: 16px 16px 16px 16px; }
+.copybox pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 13.5px/1.55 var(--f-mono); color: var(--fg); padding-right: 84px; }
+.copy { position: absolute; top: 10px; right: 10px; font: 500 12px/1 var(--f-body); color: var(--fg); background: var(--led); border: 0; border-radius: 999px; padding: 8px 12px; cursor: pointer; }
+.copy:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.code { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; overflow-x: auto; font: 13px/1.55 var(--f-mono); }
+.steps { display: grid; gap: 22px; }
+.steps section { display: grid; gap: 8px; }
+ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+li code, p code { font: 13px var(--f-mono); background: var(--panel); padding: 1px 5px; border-radius: 4px; }
+.links { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn { font: 500 14px/1 var(--f-body); color: var(--fg); text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 10px 16px; }
+.btn.primary { border-color: var(--led); background: color-mix(in srgb, var(--led) 20%, transparent); }
+.btn:hover { border-color: var(--led); }
+@media (max-width: 640px) { .pair { grid-template-columns: 1fr; } .copybox pre { padding-right: 0; padding-top: 34px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Claude skill</div>
+    <h1>plan-to-blender-room</h1>
+    <p class="muted">Kat planından ve/veya bir referans iç mekân görselinden (AI render, fotoğraf) odanın Blender modelini tamamen Python ile kurar; kamerayı görsele eşler ve render'ı iterasyonla referansa yaklaştırır. Çıktı: <code>.blend</code>, <code>.glb</code>, final render'lar ve kesit görünüm.</p>
+  </header>
+
+  <div class="pair">
+    <figure><img src="../img/ref.jpg" alt="Referans: AI ile üretilmiş oyun odası"><figcaption class="cap">Girdi · AI referans görsel + kat planı</figcaption></figure>
+    <figure><img src="../img/render.jpg" alt="Skill ile üretilen Blender render"><figcaption class="cap">Çıktı · prosedürel Blender modeli, Cycles</figcaption></figure>
+  </div>
+
+  <section>
+    <h2>Claude'una bunu yapıştır</h2>
+    <div class="copybox">
+      <pre id="prompt">Şu skill'i kur: https://deniz.is-a.dev/oyun-odasi-3d/skill/INSTALL.md
+Talimatları oku, kurulumu yap ve gereksinimleri (Blender, numpy, scipy, Pillow, pdftoppm) kontrol et.</pre>
+      <button class="copy" type="button" id="copy">Kopyala</button>
+    </div>
+    <p class="cap" style="margin-top:8px">Claude Code içinde çalışır. Claude talimat dosyasını okuyup skill'i <code>~/.claude/skills/</code> altına indirir.</p>
+  </section>
+
+  <div class="steps">
+    <section>
+      <h2>Elle kurulum</h2>
+      <p><b>Claude Code:</b></p>
+      <div class="code">curl -fsSL https://deniz.is-a.dev/oyun-odasi-3d/skill/install.sh | sh</div>
+      <p><b>claude.ai:</b> <code>.skill</code> dosyasını indir, Ayarlar → Capabilities → Skills bölümünden yükle.</p>
+      <div class="links">
+        <a class="btn primary" href="plan-to-blender-room.skill">plan-to-blender-room.skill indir</a>
+        <a class="btn" href="INSTALL.md">INSTALL.md</a>
+        <a class="btn" href="https://github.com/creeperkafasi/oyun-odasi-3d/tree/main/skills/plan-to-blender-room">Kaynak kod</a>
+      </div>
+    </section>
+
+    <section>
+      <h2>Gereksinimler</h2>
+      <ul>
+        <li>Blender 4.2+ (5.2'de test edildi), <code>PATH</code> üzerinde</li>
+        <li>Python 3 ile <code>numpy</code>, <code>scipy</code>, <code>Pillow</code>; PDF planlar için <code>pdftoppm</code></li>
+        <li>Bir GPU (OptiX, CUDA, HIP veya Metal) iterasyonu pratik hale getirir</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Nasıl kullanılır</h2>
+      <p>Claude'a planı ve görseli verip "bu görseli 3B modele çevir, plandaki şu oda" demen yeterli. Skill sırasıyla şunları yapar: planın ölçeğini ve odanın ölçülerini çıkarır, görseldeki noktalardan kamerayı en küçük kareler ile çözer, sahneyi kabadan inceye kurar ve her turda referansla yan yana karşılaştırır.</p>
+    </section>
+
+    <section>
+      <h2>İçindekiler</h2>
+      <ul>
+        <li><code>SKILL.md</code>: iş akışı ve karar noktaları</li>
+        <li><code>scripts/</code>: geometri, malzeme, bitki, halı tüyü ve ışık modülleri; başlangıç sahnesi; kamera çözücü; karşılaştırma ve GLB araçları</li>
+        <li><code>references/pitfalls.md</code>: sık düşülen tuzaklar ve çözümleri</li>
+        <li><code>examples/gaming-room/</code>: bitmiş örnek proje (<a href="../">sonuçlar</a>)</li>
+      </ul>
+    </section>
+  </div>
+</div>
+<script>
+document.getElementById("copy").addEventListener("click", function (e) {
+  var t = document.getElementById("prompt").textContent, b = e.currentTarget;
+  function done() { b.textContent = "Kopyalandı"; setTimeout(function () { b.textContent = "Kopyala"; }, 1600); }
+  if (navigator.clipboard) navigator.clipboard.writeText(t).then(done, function () { window.getSelection().selectAllChildren(document.getElementById("prompt")); });
+});
+</script>
+</body>
+</html>
